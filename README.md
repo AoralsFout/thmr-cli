@@ -133,6 +133,22 @@ chmod +x thmr-cli-linux.sh
 | `q` 或 `Q` | **优雅退出** | 停止播放并自动回收所有子进程与临时资源 |
 | `Ctrl + C` | **强制中断** | 触发安全清理钩子并立即退出 |
 
+#### MPRIS 桌面媒体控制
+
+在 Linux 桌面会话中，脚本会自动检测 `dbus-send`、当前用户的 D-Bus 会话总线和 VLC 的 `dbus` 模块，满足条件时启用 VLC 原生 MPRIS。可通过桌面媒体面板、媒体键或可选的 `playerctl` 控制播放、暂停、停止和音量；不可用时自动保留终端控制，无需安装额外的必需依赖。
+
+启动时会显示当前实例专属的命令，例如：
+
+```bash
+playerctl --player=vlc play-pause
+playerctl --player=vlc status
+playerctl --player=vlc volume 0.5
+```
+
+若已有其他 VLC 实例，播放器名称可能为 `vlc.instance12345`，请使用启动时显示的名称替换示例中的 `vlc`，避免控制到其他播放器。
+
+桌面播放器身份为 VLC，标题为“THMR 东方音乐电台”。当前播放的是连续直播，不支持按曲目切换或回放定位，也不获取实时歌名、歌手和封面。VLC 3.x 原生接口仍可能让桌面显示上一首、下一首按钮，点击可能停止直播，可使用播放按钮恢复。暂停后恢复可能播放缓冲内容并产生直播延迟；`Stop` 停止播放但保留程序，MPRIS `Quit` 则会结束程序并清理拉流进程与临时文件。
+
 ---
 
 ### 🏗️ 系统架构设计
@@ -308,6 +324,22 @@ Once the stream starts, control playback directly in the terminal (**no Enter ke
 | `-` or `_` | **Volume Down** | Decreases volume by -2% |
 | `q` or `Q` | **Graceful Quit** | Terminates streaming and cleans up all processes |
 | `Ctrl + C` | **Force Interruption** | Safely triggers cleanup trap and exits |
+
+#### MPRIS Desktop Media Controls
+
+The script automatically enables VLC's native MPRIS when `dbus-send`, the current user's D-Bus session bus, and VLC's `dbus` module are available. Use desktop media controls, media keys, or optional `playerctl` for playback, pause, stop, and volume. Otherwise, terminal controls remain available without additional required dependencies.
+
+Startup prints a command for this VLC instance, for example:
+
+```bash
+playerctl --player=vlc play-pause
+playerctl --player=vlc status
+playerctl --player=vlc volume 0.5
+```
+
+If another VLC instance is running, the name may be `vlc.instance12345`. Replace `vlc` with the name printed at startup to target the correct player.
+
+The desktop identifies the player as VLC with the title “THMR 东方音乐电台”. This continuous live stream does not support track switching, seeking, or live song/artist/artwork metadata. VLC 3.x may still expose previous/next buttons; pressing them may stop the stream, which can be resumed with Play. Resuming after a pause may play buffered audio and introduce live latency. `Stop` keeps the application running; MPRIS `Quit` exits and cleans up the stream processes and temporary files.
 
 ---
 

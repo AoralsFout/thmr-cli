@@ -129,6 +129,22 @@ Once the stream starts, control playback directly in the terminal (**no Enter ke
 | `q` or `Q` | **Graceful Quit** | Terminates streaming and cleans up all processes |
 | `Ctrl + C` | **Force Interruption** | Safely triggers cleanup trap and exits |
 
+#### MPRIS Desktop Media Controls
+
+The script automatically enables VLC's native MPRIS when `dbus-send`, the current user's D-Bus session bus, and VLC's `dbus` module are available. Use desktop media controls, media keys, or optional `playerctl` for playback, pause, stop, and volume. Otherwise, terminal controls remain available without additional required dependencies.
+
+Startup prints a command for this VLC instance, for example:
+
+```bash
+playerctl --player=vlc play-pause
+playerctl --player=vlc status
+playerctl --player=vlc volume 0.5
+```
+
+If another VLC instance is running, the name may be `vlc.instance12345`. Replace `vlc` with the name printed at startup to target the correct player.
+
+The desktop identifies the player as VLC with the title “THMR 东方音乐电台”. This continuous live stream does not support track switching, seeking, or live song/artist/artwork metadata. VLC 3.x may still expose previous/next buttons; pressing them may stop the stream, which can be resumed with Play. Resuming after a pause may play buffered audio and introduce live latency. `Stop` keeps the application running; MPRIS `Quit` exits and cleans up the stream processes and temporary files.
+
 ---
 
 ### 🏗️ Architecture Overview

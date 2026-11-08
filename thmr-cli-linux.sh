@@ -325,13 +325,28 @@ curl_fetcher() {
 curl_fetcher &
 CURL_PID=$!
 
-# ----------------- 6. 启动 cvlc 并挂载 UNIX 控制套接字 -----------------
+# ----------------- 6. 启动 VLC 并挂载 UNIX 控制套接字与可选 MPRIS -----------------
+VLC_BIN=cvlc
+command -v cvlc >/dev/null 2>&1 || VLC_BIN=vlc
+VLC_EXTRAINTF=oldrc
+
+# MPRIS 使用当前用户的会话总线；缺少工具、模块或总线时保持终端播放
+if command -v dbus-send >/dev/null 2>&1 &&
+   dbus-send --session --print-reply --reply-timeout=1000 \
+       --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+       org.freedesktop.DBus.ListNames >/dev/null 2>&1 &&
+   "$VLC_BIN" --list 2>/dev/null | grep -q '^[[:space:]]*dbus[[:space:]]'; then
+    VLC_EXTRAINTF=oldrc:dbus
+fi
+
 # 注意：VLC 3.x 下旧版 RC 接口名为 oldrc，且需要 --rc-fake-tty 避免无输入时退出
-cvlc -q -I dummy \
-     --extraintf oldrc \
+"$VLC_BIN" -q -I dummy \
+     --no-one-instance \
+     --extraintf "$VLC_EXTRAINTF" \
      --rc-unix "$VLC_SOCK" \
      --rc-fake-tty \
      --no-video \
+     --meta-title "THMR 东方音乐电台" \
      "$FIFO_PATH" >/dev/null 2>&1 &
 VLC_PID=$!
 
@@ -344,6 +359,31 @@ done
 if [[ ! -S "$VLC_SOCK" ]]; then
     echo -e "\033[1;31m[错误] VLC 控制套接字创建失败！\033[0m"
     cleanup
+fi
+
+# VLC 名称可能已被其他实例占用，按进程 ID 确认本次启动的播放器
+MPRIS_PLAYER=""
+if [[ "$VLC_EXTRAINTF" == oldrc:dbus ]]; then
+    for ((i = 0; i < 30; i++)); do
+        for name in org.mpris.MediaPlayer2.vlc "org.mpris.MediaPlayer2.vlc.instance${VLC_PID}"; do
+            owner=$(dbus-send --session --print-reply --reply-timeout=1000 \
+                --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+                org.freedesktop.DBus.GetConnectionUnixProcessID string:"$name" 2>/dev/null)
+            if [[ "$owner" == *"uint32 $VLC_PID" ]]; then
+                MPRIS_PLAYER="${name#org.mpris.MediaPlayer2.}"
+                break 2
+            fi
+        done
+        kill -0 "$VLC_PID" 2>/dev/null || break
+        sleep 0.1
+    done
+fi
+
+if [[ -n "$MPRIS_PLAYER" ]]; then
+    echo -e "\033[1;32m[$(date '+%H:%M:%S')] MPRIS 已启用，可使用桌面媒体面板或媒体键控制。\033[0m"
+    echo "  playerctl --player=$MPRIS_PLAYER play-pause"
+else
+    echo -e "\033[1;33m[$(date '+%H:%M:%S')] MPRIS 不可用，继续使用终端控制。\033[0m"
 fi
 
 # 套接字控制函数（兼容 openbsd-netcat 与 socat）
@@ -369,7 +409,7 @@ while true; do
 
     # 检查 cvlc 进程状态
     if ! kill -0 "$VLC_PID" 2>/dev/null; then
-        echo -e "\n\033[1;31m[错误] VLC 播放进程意外退出！\033[0m"
+        echo -e "\n\033[1;33m[$(date '+%H:%M:%S')] VLC 播放进程已退出，正在结束播放。\033[0m"
         break
     fi
 
