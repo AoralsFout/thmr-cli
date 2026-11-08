@@ -152,7 +152,7 @@ flowchart TD
 
     subgraph Playback ["无头播放核心"]
         FIFO -->|持续拉取音频数据| CVLC["cvlc 无头播放器 (dummy / oldrc)"]
-        SOCKET -->|控制指令 (volup/voldown)| CVLC
+        SOCKET -->|控制指令: volup 与 voldown| CVLC
         CVLC --> ALSA["系统音频输出 (PulseAudio / PipeWire / ALSA)"]
     end
 
