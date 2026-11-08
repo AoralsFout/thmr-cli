@@ -214,7 +214,7 @@ trap cleanup INT TERM EXIT
 clear
 echo "=================================================="
 echo "           THMR东方网络电台流媒体播放端           "
-echo "                Maintainer: ACDD                  "
+echo "         Maintainer: syameimaru-ayaya         "
 echo "=================================================="
 echo "步骤 1/2：请选择音频源线路："
 echo "  1) 国内音频源 (radio.zyghit.cn) [低延迟，国内推荐]"
